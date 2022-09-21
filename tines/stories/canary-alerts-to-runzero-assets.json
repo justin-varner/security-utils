@@ -1,0 +1,270 @@
+{
+  "schema_version": 4,
+  "standard_lib_version": "2",
+  "name": "Canary Alerts to runZero Assets",
+  "description": "This story automates the investigation of Canary alerts by sending the IPs to GreyNoise for context and tagging and then adding the assets to runZero. \n\nThe story consists of the following events:\n\n1) [WEBHOOK] An incoming webhook receives events from Canary whenever an alert fires\n2) [HTTP REQUEST] The webhook activates a call to the Canary API to pull down the relevant incident details\n3) [EVENT TRANSFORMATION] The IP is deduplicated to prevent redundant events from triggering\n4) [HTTP REQUEST] The public IP is extracted from the Canary incident and sent to GreyNoise for context\n5) [HTTP REQUEST] Asset metadata from GreyNoise is extracted and sent to runZero\n6) [HTTP REQUEST] runZero updates the tags associated with the asset based on the classification field reported by GreyNoise.\n\nIf the asset has not been seen in the wild then no tag is added. \n\nYou can optionally send these alerts to a third-party endpoint of your choice like Slack or Jira. ",
+  "guid": "df1a425c28d71b8bdae83aaf5815fe63",
+  "slug": "canary_alerts_to_runzero_assets",
+  "exported_at": "2022-09-21T05:13:25Z",
+  "agents": [
+    {
+      "type": "Agents::EventTransformationAgent",
+      "name": "Deduplicate Source Host",
+      "disabled": false,
+      "guid": "6861204e75ce829fd9adafd05ed59c72",
+      "options": {
+        "mode": "deduplicate",
+        "period": "86400",
+        "path": "<<get_canary_incident.body.incident.src_host>>"
+      },
+      "reporting": {
+        "time_saved_value": 0,
+        "time_saved_unit": "minutes"
+      },
+      "monitoring": {
+        "monitor_all_events": false,
+        "monitor_failures": false,
+        "monitor_no_events_emitted": null
+      },
+      "schedule": null
+    },
+    {
+      "type": "Agents::HTTPRequestAgent",
+      "name": "Get Canary Incident",
+      "disabled": false,
+      "guid": "55026c200804389d24793527ba01ba5a",
+      "options": {
+        "url": "https://<<RESOURCE.canary_tools_tenant_id>>.canary.tools/api/v1/incident/fetch",
+        "content_type": "json",
+        "method": "get",
+        "payload": {
+          "auth_token": "<<CREDENTIAL.canary_tools_api_key>>",
+          "hash_id": "<<receive_canary_tools_webhook.IncidentHash>>",
+          "extended_details": "true"
+        },
+        "headers": {}
+      },
+      "reporting": {
+        "time_saved_value": 0,
+        "time_saved_unit": "minutes"
+      },
+      "monitoring": {
+        "monitor_all_events": false,
+        "monitor_failures": false,
+        "monitor_no_events_emitted": null
+      },
+      "schedule": null
+    },
+    {
+      "type": "Agents::WebhookAgent",
+      "name": "Receive Canary Tools Webhook",
+      "disabled": false,
+      "guid": "2d9cc7d2c9167491beba8271cf37980e",
+      "options": {
+        "secret": "091c753691d404c28276660728e7072a",
+        "verbs": "get,post",
+        "include_headers": "false",
+        "path": "d3ce8cf2faa71307c2dc0c9c7531b3d3"
+      },
+      "reporting": {
+        "time_saved_value": 0,
+        "time_saved_unit": "minutes"
+      },
+      "monitoring": {
+        "monitor_all_events": false,
+        "monitor_failures": false,
+        "monitor_no_events_emitted": null
+      }
+    },
+    {
+      "type": "Agents::HTTPRequestAgent",
+      "name": "Update Asset Tags",
+      "disabled": false,
+      "guid": "15d8dcd7c7dddd7e32cff9d8320307cd",
+      "options": {
+        "url": "https://console.runzero.com/api/v1.0//assets/<<scan_asset_with_runzero.body.agent_id>>/tags",
+        "method": "patch",
+        "content_type": "json",
+        "payload": {
+          "tags": "<<lookup_ip_in_greynoise.body.tags>>"
+        },
+        "headers": {
+          "accept": "application/json",
+          "Authorization": "Bearer <<CREDENTIAL.runzero_organization_api_key>>"
+        }
+      },
+      "reporting": {
+        "time_saved_value": 0,
+        "time_saved_unit": "minutes"
+      },
+      "monitoring": {
+        "monitor_all_events": false,
+        "monitor_failures": false,
+        "monitor_no_events_emitted": null
+      },
+      "schedule": null
+    },
+    {
+      "type": "Agents::HTTPRequestAgent",
+      "name": "Lookup IP in GreyNoise",
+      "disabled": false,
+      "guid": "d80ba9bc59d6e266dd01b1665ddc4347",
+      "options": {
+        "url": "https://api.greynoise.io/v2/noise/context/<<get_canary_incident.body.incident.src_host>>",
+        "content_type": "json",
+        "method": "get",
+        "payload": {},
+        "headers": {
+          "key": "<<CREDENTIAL.greynoise_api_key>>"
+        }
+      },
+      "reporting": {
+        "time_saved_value": 0,
+        "time_saved_unit": "minutes"
+      },
+      "monitoring": {
+        "monitor_all_events": false,
+        "monitor_failures": false,
+        "monitor_no_events_emitted": null
+      },
+      "schedule": null
+    },
+    {
+      "type": "Agents::HTTPRequestAgent",
+      "name": "Extract Asset Tags",
+      "disabled": false,
+      "guid": "5a98ab7732ab2b7c289ad680ff409fb8",
+      "options": {
+        "url": "https://api.greynoise.io/v2/noise/context/<<lookup_ip_in_greynoise.body.tags>>",
+        "content_type": "json",
+        "method": "get",
+        "payload": {},
+        "headers": {
+          "key": "<<CREDENTIAL.greynoise_api_key>>"
+        }
+      },
+      "reporting": {
+        "time_saved_value": 0,
+        "time_saved_unit": "minutes"
+      },
+      "monitoring": {
+        "monitor_all_events": false,
+        "monitor_failures": false,
+        "monitor_no_events_emitted": null
+      },
+      "schedule": null
+    },
+    {
+      "type": "Agents::HTTPRequestAgent",
+      "name": "Scan Asset with runZero",
+      "disabled": false,
+      "guid": "a5e5a35f947aabad04a0eec3c99de8af",
+      "options": {
+        "url": "PATCH https://console.runzero.com/api/v1.0/org/sites/<<RESOURCE.runzero_site_id>>/scan",
+        "method": "patch",
+        "content_type": "json",
+        "payload": {
+          "targets": "<<get_canary_incident.body.incident.src_host>>",
+          "scan-name": "canary",
+          "scan-description": "canary",
+          "scan-frequency": "once",
+          "scan-start": "0",
+          "scan-tags": "",
+          "scan-grace-period": "4",
+          "agent": "\\<<RESOURCE.runzero_agent_id",
+          "rate": "10000",
+          "max-host-rate": "100",
+          "passes": "3",
+          "max-attempts": "3",
+          "max-sockets": "500",
+          "max-group-size": "4096",
+          "max-ttl": "255",
+          "tcp-ports": "1-1000,5000-6000",
+          "tcp-excludes": "9500",
+          "screenshots": "true",
+          "nameservers": "8.8.8.8",
+          "subnet-ping": "true",
+          "subnet-ping-net-size": "256",
+          "subnet-ping-sample-rate": "3",
+          "host-ping": "false",
+          "probes": "arp,bacnet,connect,dns,echo,ike,ipmi,mdns,memcache,mssql,natpmp,netbios,pca,rdns,rpcbind,sip,snmp,ssdp,syn,ubnt,wlan-list,wsd"
+        },
+        "headers": {
+          "accept": "application/json",
+          "Authorization": "Bearer <<CREDENTIAL.runzero_organization_api_key>>"
+        }
+      },
+      "reporting": {
+        "time_saved_value": 0,
+        "time_saved_unit": "minutes"
+      },
+      "monitoring": {
+        "monitor_all_events": false,
+        "monitor_failures": false,
+        "monitor_no_events_emitted": null
+      },
+      "schedule": null
+    }
+  ],
+  "diagram_notes": [
+    {
+      "content": "# Canary Alerts to runZero Assets\n\nThis story automates the investigation of Canary alerts by sending the IPs to GreyNoise for context and tagging and then adding the assets to runZero. \n\nThe story consists of the following events:\n\n1) [WEBHOOK] An incoming webhook receives events from Canary whenever an alert fires\n2) [HTTP REQUEST] The webhook activates a call to the Canary API to pull down the relevant incident details\n3) [EVENT TRANSFORMATION] The IP is deduplicated to prevent redundant events from triggering\n4) [HTTP REQUEST] The public IP is extracted from the Canary incident and sent to GreyNoise for context\n5) [HTTP REQUEST] Asset metadata from GreyNoise is extracted and sent to runZero\n6) runZero scans the assets and updates the inventory\n7) [HTTP REQUEST] runZero updates the tags associated with the asset based on data provided by GreyNoise.\n\nYou can optionally send these alerts to a third-party endpoint of your choice like Slack or Jira. ",
+      "position": [
+        720.0,
+        -1485.0
+      ],
+      "guid": "b0bc7f1ee322623058c0e8084f88ea74",
+      "width": 271
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "receiver": 4
+    },
+    {
+      "source": 1,
+      "receiver": 0
+    },
+    {
+      "source": 2,
+      "receiver": 1
+    },
+    {
+      "source": 4,
+      "receiver": 5
+    },
+    {
+      "source": 5,
+      "receiver": 6
+    },
+    {
+      "source": 6,
+      "receiver": 3
+    }
+  ],
+  "diagram_layout": "{\"6861204e75ce829fd9adafd05ed59c72\":[465,-1305],\"55026c200804389d24793527ba01ba5a\":[465,-1395],\"2d9cc7d2c9167491beba8271cf37980e\":[465,-1485],\"15d8dcd7c7dddd7e32cff9d8320307cd\":[465,-975],\"d80ba9bc59d6e266dd01b1665ddc4347\":[465,-1230],\"5a98ab7732ab2b7c289ad680ff409fb8\":[465,-1140],\"a5e5a35f947aabad04a0eec3c99de8af\":[465,-1050]}",
+  "send_to_story_enabled": false,
+  "entry_agent_guid": null,
+  "exit_agent_guids": [],
+  "exit_agent_guid": null,
+  "send_to_stories": [],
+  "form": {
+    "name": "Contextual Canary Alerts to runZero Assets Form",
+    "description": "",
+    "fields": [],
+    "visibility": "tenant",
+    "agent_guid": null,
+    "success_message": "Thank you for your submission"
+  },
+  "forms": [
+    {
+      "name": "Contextual Canary Alerts to runZero Assets Form",
+      "description": "",
+      "fields": [],
+      "visibility": "tenant",
+      "agent_guid": null,
+      "success_message": "Thank you for your submission"
+    }
+  ]
+}
