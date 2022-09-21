@@ -5,7 +5,7 @@
   "description": "This story automates the investigation of Canary alerts by sending the IPs to GreyNoise for context and tagging and then adding the assets to runZero. \n\nThe story consists of the following events:\n\n1) [WEBHOOK] An incoming webhook receives events from Canary whenever an alert fires\n2) [HTTP REQUEST] The webhook activates a call to the Canary API to pull down the relevant incident details\n3) [EVENT TRANSFORMATION] The IP is deduplicated to prevent redundant events from triggering\n4) [HTTP REQUEST] The public IP is extracted from the Canary incident and sent to GreyNoise for context\n5) [HTTP REQUEST] Asset metadata from GreyNoise is extracted and sent to runZero\n6) [HTTP REQUEST] runZero updates the tags associated with the asset based on the classification field reported by GreyNoise.\n\nIf the asset has not been seen in the wild then no tag is added. \n\nYou can optionally send these alerts to a third-party endpoint of your choice like Slack or Jira. ",
   "guid": "df1a425c28d71b8bdae83aaf5815fe63",
   "slug": "canary_alerts_to_runzero_assets",
-  "exported_at": "2022-09-21T05:13:25Z",
+  "exported_at": "2022-09-21T05:37:37Z",
   "agents": [
     {
       "type": "Agents::EventTransformationAgent",
@@ -61,10 +61,10 @@
       "disabled": false,
       "guid": "2d9cc7d2c9167491beba8271cf37980e",
       "options": {
-        "secret": "091c753691d404c28276660728e7072a",
+        "secret": "67b798e6b67109fbac30673fcc6e6de2",
         "verbs": "get,post",
         "include_headers": "false",
-        "path": "d3ce8cf2faa71307c2dc0c9c7531b3d3"
+        "path": "22bfb2d83ecee838334a76946fe7f9c8"
       },
       "reporting": {
         "time_saved_value": 0,
@@ -220,7 +220,7 @@
   "links": [
     {
       "source": 0,
-      "receiver": 4
+      "receiver": 6
     },
     {
       "source": 1,
@@ -236,14 +236,14 @@
     },
     {
       "source": 5,
-      "receiver": 6
+      "receiver": 3
     },
     {
       "source": 6,
-      "receiver": 3
+      "receiver": 4
     }
   ],
-  "diagram_layout": "{\"6861204e75ce829fd9adafd05ed59c72\":[465,-1305],\"55026c200804389d24793527ba01ba5a\":[465,-1395],\"2d9cc7d2c9167491beba8271cf37980e\":[465,-1485],\"15d8dcd7c7dddd7e32cff9d8320307cd\":[465,-975],\"d80ba9bc59d6e266dd01b1665ddc4347\":[465,-1230],\"5a98ab7732ab2b7c289ad680ff409fb8\":[465,-1140],\"a5e5a35f947aabad04a0eec3c99de8af\":[465,-1050]}",
+  "diagram_layout": "{\"6861204e75ce829fd9adafd05ed59c72\":[465,-1305],\"55026c200804389d24793527ba01ba5a\":[465,-1395],\"2d9cc7d2c9167491beba8271cf37980e\":[465,-1485],\"15d8dcd7c7dddd7e32cff9d8320307cd\":[465,-960],\"d80ba9bc59d6e266dd01b1665ddc4347\":[465,-1140],\"5a98ab7732ab2b7c289ad680ff409fb8\":[465,-1050],\"a5e5a35f947aabad04a0eec3c99de8af\":[465,-1215]}",
   "send_to_story_enabled": false,
   "entry_agent_guid": null,
   "exit_agent_guids": [],
